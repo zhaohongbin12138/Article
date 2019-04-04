@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- activiti配置 -->
+	<bean id="processEngineConfiguration"
+		class="org.activiti.spring.SpringProcessEngineConfiguration">
+		<!-- 数据源 -->
+		<property name="dataSource" ref="dataSource"/>
+		
+		<!-- 配置事务管理器 -->
+		<property name="transactionManager" ref="transactionManager"/>
+		
+		<!-- 建表策略 -->
+		<property name="databaseSchemaUpdate" value="true"/>
+	</bean>
+	
+	<!-- 获取工作流引擎 -->
+	<bean id="processEngine" class="org.activiti.spring.ProcessEngineFactoryBean">
+		<property name="processEngineConfiguration" ref="processEngineConfiguration"/>
+	</bean>
+
+	<!-- 获取工作流几个Service -->
+	<bean id="repositoryService" factory-bean="processEngine" factory-method="getRepositoryService"/>
+	<bean id="runtimeService" factory-bean="processEngine" factory-method="getRuntimeService"/>
+	<bean id="taskService" factory-bean="processEngine" factory-method="getTaskService"/>
+	<bean id="historyService" factory-bean="processEngine" factory-method="getHistoryService"/>
+	<bean id="formService" factory-bean="processEngine" factory-method="getFormService"/>
+	<bean id="identityService" factory-bean="processEngine" factory-method="getIdentityService"/>
+
+</beans>

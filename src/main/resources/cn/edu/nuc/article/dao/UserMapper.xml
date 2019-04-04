@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.edu.nuc.article.dao.UserMapper">
+
+	<!-- 级联结果集 -->
+	<resultMap id="CascadeResultMap" type="cn.edu.nuc.article.entity.User">
+		<!-- 表中原有基本列 -->
+		<id column="userid" jdbcType="INTEGER" property="userid" />
+		<result column="loginname" jdbcType="VARCHAR" property="loginname" />
+		<result column="password" jdbcType="VARCHAR" property="password" />
+		<result column="usertruename" jdbcType="VARCHAR" property="usertruename" />
+		<result column="job" jdbcType="VARCHAR" property="job" />
+		<result column="phone" jdbcType="VARCHAR" property="phone" />
+		<result column="email" jdbcType="VARCHAR" property="email" />
+		<result column="inst_id" jdbcType="INTEGER" property="instId" />
+		<result column="role_id" jdbcType="INTEGER" property="roleId" />
+		<result column="userstate" jdbcType="INTEGER" property="userstate" />
+		
+		<!-- 级联机构 -->
+		<association property="institution" javaType="cn.edu.nuc.article.entity.Institution">
+			<id column="instid" jdbcType="INTEGER" property="instid" />
+			<result column="instname" jdbcType="VARCHAR" property="instname" />
+		</association>
+		
+		<!-- 级联角色 -->
+		<association property="role" javaType="cn.edu.nuc.article.entity.Role">
+			<id column="roleid" jdbcType="INTEGER" property="roleid" />
+			<result column="rolename" jdbcType="VARCHAR" property="rolename" />
+		</association>
+	</resultMap>
+	
+	<!-- 级联SQL -->
+	<sql id="cascadeSql">
+		SELECT
+			tb_user.userid,
+			tb_user.loginname,
+			tb_user.`password`,
+			tb_user.usertruename,
+			tb_user.job,
+			tb_user.phone,
+			tb_user.email,
+			tb_user.inst_id,
+			tb_user.role_id,
+			tb_user.userstate,
+			tb_institution.instid,
+			tb_institution.instname,
+			tb_role.rolename,
+			tb_role.roleid
+		FROM
+			tb_user
+		LEFT OUTER JOIN 
+			tb_role ON tb_user.role_id = tb_role.roleid
+		LEFT OUTER JOIN 
+			tb_institution ON tb_user.inst_id = tb_institution.instid
+	</sql>
+	
+	<!-- 按主键级联查询 -->
+	<select id="selectByPrimaryKey" parameterType="java.lang.Integer"
+		resultMap="CascadeResultMap">
+		
+		<!-- 引入级联SQL -->
+		<include refid="cascadeSql"></include>
+		
+		where userid = #{userid,jdbcType=INTEGER}
+	</select>
+	
+	<!-- 级联模糊查询 -->
+	<select id="selectByKeyWord" parameterType="cn.edu.nuc.article.entity.User"
+		resultMap="CascadeResultMap">
+		
+		<!-- 设置字符串 -->
+		<if test="loginname != null">
+			<bind name="_loginname" value="'%'+loginname+'%'"/>
+		</if>
+		
+		<if test="password != null">
+			<bind name="_password" value="'%'+password+'%'"/>
+		</if>
+		
+		<if test="usertruename != null">
+			<bind name="_usertruename" value="'%'+usertruename+'%'"/>
+		</if>
+		
+		<if test="job != null">
+			<bind name="_job" value="'%'+job+'%'"/>
+		</if>
+		
+		<if test="phone != null">
+			<bind name="_phone" value="'%'+phone+'%'"/>
+		</if>
+		
+		<if test="email != null">
+			<bind name="_email" value="'%'+email+'%'"/>
+		</if>
+		
+		<!-- 引入级联SQL -->
+		<include refid="cascadeSql"></include>
+		
+		<!-- 动态设置查询条件 -->
+		where 1=1 
+		<if test="userid != null">
+			AND userid = #{userid,jdbcType=INTEGER}
+		</if>
+		<if test="loginname != null">
+			AND loginname LIKE #{_loginname,jdbcType=VARCHAR}
+		</if>
+		<if test="password != null">
+			AND password LIKE #{_password,jdbcType=VARCHAR}
+		</if>
+		<if test="usertruename != null">
+			AND usertruename LIKE #{_usertruename,jdbcType=VARCHAR}
+		</if>
+		<if test="job != null">
+			AND job LIKE #{_job,jdbcType=VARCHAR}
+		</if>
+		<if test="phone != null">
+			AND phone LIKE #{_phone,jdbcType=VARCHAR}
+		</if>
+		<if test="email != null">
+			AND email LIKE #{_email,jdbcType=VARCHAR}
+		</if>
+		<if test="instId != null">
+			AND instId = #{instId,jdbcType=INTEGER}
+		</if>
+		<if test="roleId != null">
+			AND roleId = #{roleId,jdbcType=INTEGER}
+		</if>
+		<if test="userstate != null">
+			AND userstate = #{userstate,jdbcType=INTEGER}
+		</if>
+	</select>
+	
+	<!-- 检查登录名是否重复 -->
+	<select id="loginnameValidate" resultMap="CascadeResultMap">
+		
+		<!-- 引入级联SQL -->
+		<include refid="cascadeSql"></include>
+		
+		<!-- 动态设置查询条件 -->
+		where loginname = #{loginname,jdbcType=VARCHAR}
+		<if test="userid != null">
+			AND userid != #{userid,jdbcType=INTEGER}
+		</if>
+	</select>
+	
+	<!-- 检查用户名和密码是否匹配 -->
+	<select id="loginValidate" parameterType="cn.edu.nuc.article.entity.User"
+		resultMap="CascadeResultMap">
+		
+		<!-- 引入级联SQL -->
+		<include refid="cascadeSql"></include>
+		
+		<!-- 动态设置查询条件 -->
+		where loginname = #{loginname,jdbcType=VARCHAR}
+			AND password LIKE #{password,jdbcType=VARCHAR}
+			AND userstate = 1
+	</select>
+	
+	<!-- 动态插入 -->
+	<insert id="insertSelective" parameterType="cn.edu.nuc.article.entity.User">
+		insert into tb_user
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="userid != null">
+				userid,
+			</if>
+			<if test="loginname != null">
+				loginname,
+			</if>
+			<if test="password != null">
+				password,
+			</if>
+			<if test="usertruename != null">
+				usertruename,
+			</if>
+			<if test="job != null">
+				job,
+			</if>
+			<if test="phone != null">
+				phone,
+			</if>
+			<if test="email != null">
+				email,
+			</if>
+			<if test="instId != null">
+				inst_id,
+			</if>
+			<if test="roleId != null">
+				role_id,
+			</if>
+			<if test="userstate != null">
+				userstate,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="userid != null">
+				#{userid,jdbcType=INTEGER},
+			</if>
+			<if test="loginname != null">
+				#{loginname,jdbcType=VARCHAR},
+			</if>
+			<if test="password != null">
+				#{password,jdbcType=VARCHAR},
+			</if>
+			<if test="usertruename != null">
+				#{usertruename,jdbcType=VARCHAR},
+			</if>
+			<if test="job != null">
+				#{job,jdbcType=VARCHAR},
+			</if>
+			<if test="phone != null">
+				#{phone,jdbcType=VARCHAR},
+			</if>
+			<if test="email != null">
+				#{email,jdbcType=VARCHAR},
+			</if>
+			<if test="instId != null">
+				#{instId,jdbcType=INTEGER},
+			</if>
+			<if test="roleId != null">
+				#{roleId,jdbcType=INTEGER},
+			</if>
+			<if test="userstate != null">
+				#{userstate,jdbcType=INTEGER},
+			</if>
+		</trim>
+	</insert>
+	
+	<!-- 动态更新 -->
+	<update id="updateByPrimaryKeySelective" parameterType="cn.edu.nuc.article.entity.User">
+		update tb_user
+		<set>
+			<if test="loginname != null">
+				loginname = #{loginname,jdbcType=VARCHAR},
+			</if>
+			<if test="password != null">
+				password = #{password,jdbcType=VARCHAR},
+			</if>
+			<if test="usertruename != null">
+				usertruename = #{usertruename,jdbcType=VARCHAR},
+			</if>
+			<if test="job != null">
+				job = #{job,jdbcType=VARCHAR},
+			</if>
+			<if test="phone != null">
+				phone = #{phone,jdbcType=VARCHAR},
+			</if>
+			<if test="email != null">
+				email = #{email,jdbcType=VARCHAR},
+			</if>
+			<if test="instId != null">
+				inst_id = #{instId,jdbcType=INTEGER},
+			</if>
+			<if test="roleId != null">
+				role_id = #{roleId,jdbcType=INTEGER},
+			</if>
+			<if test="userstate != null">
+				userstate = #{userstate,jdbcType=INTEGER},
+			</if>
+		</set>
+		where userid = #{userid,jdbcType=INTEGER}
+	</update>
+</mapper>

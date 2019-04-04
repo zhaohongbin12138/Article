@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.edu.nuc.article.dao.AuditMessageMapper">
+
+	<!-- 添加一条公文审核记录 -->
+	<insert id="insertSelective" parameterType="cn.edu.nuc.article.entity.AuditMessage">
+		insert into tb_auditmessage
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="auditid != null">
+				auditid,
+			</if>
+			<if test="articleId != null">
+				article_id,
+			</if>
+			<if test="auditdate != null">
+				auditdate,
+			</if>
+			<if test="auditresult != null">
+				auditresult,
+			</if>
+			<if test="auditmessage != null">
+				auditmessage,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="auditid != null">
+				#{auditid,jdbcType=INTEGER},
+			</if>
+			<if test="articleId != null">
+				#{articleId,jdbcType=INTEGER},
+			</if>
+			<if test="auditdate != null">
+				#{auditdate,jdbcType=TIMESTAMP},
+			</if>
+			<if test="auditresult != null">
+				#{auditresult,jdbcType=INTEGER},
+			</if>
+			<if test="auditmessage != null">
+				#{auditmessage,jdbcType=VARCHAR},
+			</if>
+		</trim>
+	</insert>
+</mapper>

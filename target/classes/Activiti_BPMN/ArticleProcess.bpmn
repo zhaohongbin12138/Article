@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:activiti="http://activiti.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.activiti.org/test">
+  <process id="articleProcess" name="公文管理系统流程" isExecutable="true">
+    <startEvent id="start" name="公文撰稿"></startEvent>
+    <userTask id="audit" name="公文审核" activiti:assignee="${auditorId}"></userTask>
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="audit"></sequenceFlow>
+    <userTask id="decide" name="决定公文如何处置" activiti:assignee="${copywriterId}"></userTask>
+    <exclusiveGateway id="exclusivegateway1" name="Exclusive Gateway"></exclusiveGateway>
+    <sequenceFlow id="flow2" sourceRef="audit" targetRef="exclusivegateway1"></sequenceFlow>
+    <sequenceFlow id="auditfail" name="审核不通过" sourceRef="exclusivegateway1" targetRef="decide">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${auditresult==false}]]></conditionExpression>
+    </sequenceFlow>
+    <exclusiveGateway id="exclusivegateway2" name="Exclusive Gateway"></exclusiveGateway>
+    <endEvent id="endevent1" name="公文被删除"></endEvent>
+    <sequenceFlow id="flow4" sourceRef="decide" targetRef="exclusivegateway2"></sequenceFlow>
+    <sequenceFlow id="deleteflow" name="删除公文" sourceRef="exclusivegateway2" targetRef="endevent1">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${decision==false}]]></conditionExpression>
+    </sequenceFlow>
+    <userTask id="edit" name="修改公文" activiti:assignee="${copywriterId}"></userTask>
+    <sequenceFlow id="flow7" sourceRef="edit" targetRef="audit"></sequenceFlow>
+    <sequenceFlow id="editflow" name="修改" sourceRef="exclusivegateway2" targetRef="edit">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${decision==true}]]></conditionExpression>
+    </sequenceFlow>
+    <endEvent id="endevent2" name="公文被发布"></endEvent>
+    <sequenceFlow id="pass" name="审核通过" sourceRef="exclusivegateway1" targetRef="endevent2">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${auditresult==true}]]></conditionExpression>
+    </sequenceFlow>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_articleProcess">
+    <bpmndi:BPMNPlane bpmnElement="articleProcess" id="BPMNPlane_articleProcess">
+      <bpmndi:BPMNShape bpmnElement="start" id="BPMNShape_start">
+        <omgdc:Bounds height="35.0" width="35.0" x="60.0" y="170.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="audit" id="BPMNShape_audit">
+        <omgdc:Bounds height="55.0" width="105.0" x="170.0" y="160.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="decide" id="BPMNShape_decide">
+        <omgdc:Bounds height="55.0" width="105.0" x="469.0" y="160.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="exclusivegateway1" id="BPMNShape_exclusivegateway1">
+        <omgdc:Bounds height="40.0" width="40.0" x="330.0" y="167.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="exclusivegateway2" id="BPMNShape_exclusivegateway2">
+        <omgdc:Bounds height="40.0" width="40.0" x="619.0" y="167.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endevent1" id="BPMNShape_endevent1">
+        <omgdc:Bounds height="35.0" width="35.0" x="730.0" y="170.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="edit" id="BPMNShape_edit">
+        <omgdc:Bounds height="55.0" width="105.0" x="370.0" y="60.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endevent2" id="BPMNShape_endevent2">
+        <omgdc:Bounds height="35.0" width="35.0" x="333.0" y="260.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="flow1" id="BPMNEdge_flow1">
+        <omgdi:waypoint x="95.0" y="187.0"></omgdi:waypoint>
+        <omgdi:waypoint x="170.0" y="187.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow2" id="BPMNEdge_flow2">
+        <omgdi:waypoint x="275.0" y="187.0"></omgdi:waypoint>
+        <omgdi:waypoint x="330.0" y="187.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="auditfail" id="BPMNEdge_auditfail">
+        <omgdi:waypoint x="370.0" y="187.0"></omgdi:waypoint>
+        <omgdi:waypoint x="469.0" y="187.0"></omgdi:waypoint>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds height="14.0" width="60.0" x="372.0" y="167.0"></omgdc:Bounds>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow4" id="BPMNEdge_flow4">
+        <omgdi:waypoint x="574.0" y="187.0"></omgdi:waypoint>
+        <omgdi:waypoint x="619.0" y="187.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="deleteflow" id="BPMNEdge_deleteflow">
+        <omgdi:waypoint x="659.0" y="187.0"></omgdi:waypoint>
+        <omgdi:waypoint x="730.0" y="187.0"></omgdi:waypoint>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds height="14.0" width="48.0" x="669.0" y="167.0"></omgdc:Bounds>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow7" id="BPMNEdge_flow7">
+        <omgdi:waypoint x="370.0" y="87.0"></omgdi:waypoint>
+        <omgdi:waypoint x="222.0" y="87.0"></omgdi:waypoint>
+        <omgdi:waypoint x="222.0" y="160.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="editflow" id="BPMNEdge_editflow">
+        <omgdi:waypoint x="639.0" y="167.0"></omgdi:waypoint>
+        <omgdi:waypoint x="637.0" y="87.0"></omgdi:waypoint>
+        <omgdi:waypoint x="475.0" y="87.0"></omgdi:waypoint>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds height="14.0" width="24.0" x="569.0" y="71.0"></omgdc:Bounds>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="pass" id="BPMNEdge_pass">
+        <omgdi:waypoint x="350.0" y="207.0"></omgdi:waypoint>
+        <omgdi:waypoint x="350.0" y="260.0"></omgdi:waypoint>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds height="14.0" width="48.0" x="290.0" y="219.0"></omgdc:Bounds>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

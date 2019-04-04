@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.edu.nuc.article.dao.InstitutionMapper">
+
+	<!-- 结果集封装 -->
+	<resultMap id="BaseResultMap" type="cn.edu.nuc.article.entity.Institution">
+		<id column="instid" jdbcType="INTEGER" property="instid" />
+		<result column="instname" jdbcType="VARCHAR" property="instname" />
+		<result column="instaddr" jdbcType="VARCHAR" property="instaddr" />
+		<result column="postcode" jdbcType="VARCHAR" property="postcode" />
+		<result column="inststate" jdbcType="INTEGER" property="inststate" />
+		<result column="mergedinstid" jdbcType="INTEGER" property="mergedinstid" />
+		
+		<!-- 设置合并后机构的关联信息 -->
+		<association property="mergedInstitution" javaType="cn.edu.nuc.article.entity.Institution">
+			<id column="new_instid" jdbcType="INTEGER" property="instid" />
+			<result column="new_instname" jdbcType="VARCHAR" property="instname" />
+		</association>
+	</resultMap>
+	
+	<!-- 级联查询SQL -->
+	<sql id="cascadeSql">
+		SELECT
+			tb_institution.instid,
+			tb_institution.mergedinstid,
+			tb_institution.instname,
+			tb_institution.instaddr,
+			tb_institution.postcode,
+			tb_institution.inststate,
+			new.instid AS new_instid,
+			new.instname AS new_instname
+		FROM
+			tb_institution
+		LEFT OUTER JOIN 
+			tb_institution AS new ON tb_institution.mergedinstid = new.instid
+				
+	</sql>
+	
+	<!-- 按主键查询 -->
+	<select id="selectByPrimaryKey" parameterType="java.lang.Integer"
+			resultMap="BaseResultMap">
+			
+		<!-- 引入级联SQL -->
+		<include refid="cascadeSql"></include>
+		
+		<!-- 加查询条件 -->
+		where 
+			tb_institution.instid = #{instid,jdbcType=INTEGER}
+	</select>
+	
+	<!-- 模糊查询 -->
+	<select id="selectByKeyWord" parameterType="cn.edu.nuc.article.entity.Institution"
+			resultMap="BaseResultMap">
+			
+		<!-- 给字符串类型的参数加% -->
+		<if test="instname != null">
+			<bind name="_instname" value="'%'+instname+'%'"/>
+		</if>
+		
+		<!-- 引入级联SQL -->
+		<include refid="cascadeSql"></include>
+		
+		where 1=1 
+			<if test="instid != null">
+				AND tb_institution.instid = #{instid,jdbcType=INTEGER}
+			</if>
+			<if test="mergedinstid != null">
+				AND tb_institution.mergedinstid = #{mergedinstid,jdbcType=INTEGER}
+			</if>
+			<if test="instname != null">
+				AND tb_institution.instname LIKE #{_instname,jdbcType=VARCHAR}
+			</if>
+			<if test="instaddr != null">
+				AND tb_institution.instaddr = #{instaddr,jdbcType=VARCHAR}
+			</if>
+			<if test="postcode != null">
+				AND tb_institution.postcode = #{postcode,jdbcType=VARCHAR}
+			</if>
+			<if test="inststate != null">
+				AND tb_institution.inststate = #{inststate,jdbcType=INTEGER}
+			</if>
+		ORDER BY 
+			instid DESC
+	</select>
+	
+	<!-- 查出所有没有用户的机构 -->
+	<select id="selectInstitutionNoUserUnder" resultMap="BaseResultMap">
+		SELECT
+			tb_institution.instid,
+			tb_institution.mergedinstid,
+			tb_institution.instname,
+			tb_institution.instaddr,
+			tb_institution.postcode,
+			tb_institution.inststate
+		FROM
+			tb_institution
+		WHERE
+			tb_institution.inststate = 1 
+			AND tb_institution.instid NOT IN (
+				SELECT
+					tb_institution.instid
+				FROM
+					tb_institution
+				INNER JOIN 
+					tb_user ON tb_user.inst_id = tb_institution.instid
+			)
+	</select>
+	
+	<!-- 找出下面有用户的机构信息 -->
+	<select id="selectInstitutionHasUserUnderAndValid" resultMap="BaseResultMap">
+		SELECT
+			DISTINCT tb_institution.instid,
+			tb_institution.mergedinstid,
+			tb_institution.instname,
+			tb_institution.instaddr,
+			tb_institution.postcode,
+			tb_institution.inststate
+		FROM
+			tb_institution
+		INNER JOIN 
+			tb_user ON tb_user.inst_id = tb_institution.instid
+		WHERE
+			tb_institution.inststate = 1
+	</select>
+	
+	<!-- 判断机构下面是不是还有用户（机构合并时用） -->
+	<select id="isInstitutionHasUser" parameterType="java.lang.Integer" resultType="java.lang.Long">
+		SELECT
+			COUNT(*)
+		FROM
+			tb_institution
+		INNER JOIN 
+			tb_user ON tb_user.inst_id = tb_institution.instid
+		WHERE
+			tb_institution.instid = #{instid,jdbcType=INTEGER}
+	</select>
+
+	<!-- 选择性插入 -->
+	<insert id="insertSelective" parameterType="cn.edu.nuc.article.entity.Institution">
+		insert into tb_institution
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="instid != null">
+				instid,
+			</if>
+			<if test="mergedinstid != null">
+				mergedinstid,
+			</if>
+			<if test="instname != null">
+				instname,
+			</if>
+			<if test="instaddr != null">
+				instaddr,
+			</if>
+			<if test="postcode != null">
+				postcode,
+			</if>
+			<if test="inststate != null">
+				inststate,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="instid != null">
+				#{instid,jdbcType=INTEGER},
+			</if>
+			<if test="mergedinstid != null">
+				#{mergedinstid,jdbcType=INTEGER},
+			</if>
+			<if test="instname != null">
+				#{instname,jdbcType=VARCHAR},
+			</if>
+			<if test="instaddr != null">
+				#{instaddr,jdbcType=VARCHAR},
+			</if>
+			<if test="postcode != null">
+				#{postcode,jdbcType=VARCHAR},
+			</if>
+			<if test="inststate != null">
+				#{inststate,jdbcType=INTEGER},
+			</if>
+		</trim>
+	</insert>
+	
+	<!-- 重名检查 -->
+	<select id="hasSameInstitution" resultMap="BaseResultMap">
+			
+		select
+			tb_institution.instid,
+			tb_institution.mergedinstid,
+			tb_institution.instname,
+			tb_institution.instaddr,
+			tb_institution.postcode,
+			tb_institution.inststate
+		from 
+			tb_institution
+		where 
+			tb_institution.instname = #{instname,jdbcType=VARCHAR}
+			<if test="instid != null">
+				AND instid != #{instid,jdbcType=INTEGER}
+			</if>
+	</select>
+	
+	<!-- 选择性更新 -->
+	<update id="updateByPrimaryKeySelective" parameterType="cn.edu.nuc.article.entity.Institution">
+		update tb_institution
+		<set>
+			<if test="mergedinstid != null">
+				mergedinstid = #{mergedinstid,jdbcType=INTEGER},
+			</if>
+			<if test="instname != null">
+				instname = #{instname,jdbcType=VARCHAR},
+			</if>
+			<if test="instaddr != null">
+				instaddr = #{instaddr,jdbcType=VARCHAR},
+			</if>
+			<if test="postcode != null">
+				postcode = #{postcode,jdbcType=VARCHAR},
+			</if>
+			<if test="inststate != null">
+				inststate = #{inststate,jdbcType=INTEGER},
+			</if>
+		</set>
+		where instid = #{instid,jdbcType=INTEGER}
+	</update>
+	
+</mapper>

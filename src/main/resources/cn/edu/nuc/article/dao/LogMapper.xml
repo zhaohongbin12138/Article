@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.edu.nuc.article.dao.LogMapper">
+	
+	<!-- 级联结果集 -->
+	<resultMap id="CascadeResultMap" type="cn.edu.nuc.article.entity.Log">
+		<id column="logid" jdbcType="INTEGER" property="logid" />
+		<result column="optname" jdbcType="VARCHAR" property="optname" />
+		<result column="bussiness_id" jdbcType="INTEGER" property="bussinessId" />
+		<result column="operator_id" jdbcType="INTEGER" property="operatorId" />
+		<result column="opttime" jdbcType="TIMESTAMP" property="opttime" />
+		<result column="ipaddress" jdbcType="VARCHAR" property="ipaddress" />
+		
+		<!-- 级联操作人信息 -->
+		<association property="operator" javaType="cn.edu.nuc.article.entity.User">
+			<id column="userid" jdbcType="INTEGER" property="userid" />
+			<result column="usertruename" jdbcType="VARCHAR" property="usertruename" />
+		</association>
+	</resultMap>
+	
+	<!-- 级联查询SQL -->
+	<sql id="CascadeSql">
+		SELECT
+			tb_log.logid,
+			tb_log.optname,
+			tb_log.bussiness_id,
+			tb_log.operator_id,
+			tb_log.opttime,
+			tb_log.ipaddress,
+			tb_user.userid,
+			tb_user.usertruename
+		FROM
+			tb_log
+		LEFT OUTER JOIN 
+			tb_user ON tb_log.operator_id = tb_user.userid
+	</sql>
+	
+	<!-- 模糊查询 -->
+	<select id="selectByKeyword" parameterType="cn.edu.nuc.article.entity.Log" 
+			resultMap="CascadeResultMap">
+		
+		<!-- 设置字符串 -->
+		<if test="optname != null">
+			<bind name="_optname" value="'%'+optname+'%'"/>
+		</if>
+		
+		<if test="ipaddress != null">
+			<bind name="_ipaddress" value="'%'+ipaddress+'%'"/>
+		</if>
+		
+		<!-- 引入级联SQL -->
+		<include refid="CascadeSql"></include>
+		
+		<!-- 动态设置查询条件 -->
+		where 1=1
+			<if test="logid != null">
+				AND logid = #{logid,jdbcType=INTEGER}
+			</if>
+			<if test="optname != null">
+				AND optname LIKE #{_optname,jdbcType=VARCHAR}
+			</if>
+			<if test="bussinessId != null">
+				AND bussiness_id = #{bussinessId,jdbcType=INTEGER}
+			</if>
+			<if test="operatorId != null">
+				AND operator_id = #{operatorId,jdbcType=INTEGER}
+			</if>
+			<if test="opttime != null">
+				AND opttime = #{opttime,jdbcType=TIMESTAMP}
+			</if>
+			<if test="ipaddress != null">
+				AND ipaddress LIKE #{_ipaddress,jdbcType=VARCHAR}
+			</if>
+		ORDER BY
+			opttime DESC
+	</select>
+
+	<!-- 添加一条日志数据 -->
+	<insert id="insertSelective" parameterType="cn.edu.nuc.article.entity.Log">
+		insert into 
+			tb_log
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="logid != null">
+				logid,
+			</if>
+			<if test="optname != null">
+				optname,
+			</if>
+			<if test="bussinessId != null">
+				bussiness_id,
+			</if>
+			<if test="operatorId != null">
+				operator_id,
+			</if>
+			<if test="opttime != null">
+				opttime,
+			</if>
+			<if test="ipaddress != null">
+				ipaddress,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="logid != null">
+				#{logid,jdbcType=INTEGER},
+			</if>
+			<if test="optname != null">
+				#{optname,jdbcType=VARCHAR},
+			</if>
+			<if test="bussinessId != null">
+				#{bussinessId,jdbcType=INTEGER},
+			</if>
+			<if test="operatorId != null">
+				#{operatorId,jdbcType=INTEGER},
+			</if>
+			<if test="opttime != null">
+				#{opttime,jdbcType=TIMESTAMP},
+			</if>
+			<if test="ipaddress != null">
+				#{ipaddress,jdbcType=VARCHAR},
+			</if>
+		</trim>
+	</insert>
+</mapper>

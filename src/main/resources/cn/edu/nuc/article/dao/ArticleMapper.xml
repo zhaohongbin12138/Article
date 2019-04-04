@@ -1,0 +1,547 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.edu.nuc.article.dao.ArticleMapper">
+
+	<!-- 级联查询结果集 -->
+	<resultMap id="BaseResultMap" type="cn.edu.nuc.article.entity.Article">
+		<!-- 表中原有的列 -->
+		<id column="articleid" jdbcType="INTEGER" property="articleid" />
+		<result column="title" jdbcType="VARCHAR" property="title" />
+		<result column="publishtime" jdbcType="TIMESTAMP" property="publishtime" />
+		<result column="copywriter_id" jdbcType="INTEGER" property="copywriterId" />
+		<result column="auditor_id" jdbcType="INTEGER" property="auditorId" />
+		<result column="inst_id" jdbcType="INTEGER" property="instId" />
+		<result column="processinstance_id" jdbcType="VARCHAR" property="processinstanceId" />
+		<result column="articlestate" jdbcType="INTEGER" property="articlestate" />
+		<result column="clickcount" jdbcType="BIGINT" property="clickcount" />
+		<result column="downloadcount" jdbcType="BIGINT" property="downloadcount" />
+		
+		<!-- 级联的列 -->
+		<!-- 级联撰稿人信息 -->
+		<association property="copywriter" javaType="cn.edu.nuc.article.entity.User">
+			<id column="copywriterid" jdbcType="INTEGER" property="userid" />
+			<result column="copywritername" jdbcType="VARCHAR" property="usertruename" />
+		</association>
+		
+		<!-- 级联审稿人信息 -->
+		<association property="auditor" javaType="cn.edu.nuc.article.entity.User">
+			<id column="auditorid" jdbcType="INTEGER" property="userid" />
+			<result column="auditorname" jdbcType="VARCHAR" property="usertruename" />
+		</association>
+		
+		<!-- 级联机构信息 -->
+		<association property="institution" javaType="cn.edu.nuc.article.entity.Institution">
+			<id column="instid" jdbcType="INTEGER" property="instid" />
+			<result column="instname" jdbcType="VARCHAR" property="instname" />
+		</association>
+		
+		<!-- 级联附件信息 -->
+		<collection property="attachments" ofType="cn.edu.nuc.article.entity.Attachment">
+			<id column="attachmentid" jdbcType="INTEGER" property="attachmentid" />
+			<result column="filename" jdbcType="VARCHAR" property="filename" />
+			<result column="filesize" jdbcType="INTEGER" property="filesize" />
+			<result column="uploadtime" jdbcType="TIMESTAMP" property="uploadtime" />
+			<result column="attachtype" jdbcType="INTEGER" property="attachtype" />
+			<result column="fileid" jdbcType="VARCHAR" property="fileid" />
+		</collection>
+		
+		<!-- 级联审核信息 -->
+		<collection property="auditMessages" ofType="cn.edu.nuc.article.entity.AuditMessage">
+		    <result column="auditdate" jdbcType="TIMESTAMP" property="auditdate" />
+		    <result column="auditresult" jdbcType="INTEGER" property="auditresult" />
+		    <result column="auditmessage" jdbcType="VARCHAR" property="auditmessage" />
+		</collection>
+		
+		<!-- 级联接收人信息 -->
+		<collection property="receivers" ofType="cn.edu.nuc.article.entity.User">
+			<id column="receiverid" jdbcType="INTEGER" property="userid" />
+			<result column="receivername" jdbcType="VARCHAR" property="usertruename" />
+			
+			<!-- 级联接收人名称和id -->
+			<association property="institution" javaType="cn.edu.nuc.article.entity.Institution">
+				<id column="receiver_inst_id" jdbcType="INTEGER" property="instid" />
+				<result column="receiver_inst_name" jdbcType="VARCHAR" property="instname" />
+			</association>
+		</collection>
+		
+	</resultMap>
+	
+	<!-- 级联查询语句 -->
+	<sql id="CascadeSelectSql">
+		SELECT DISTINCT
+			a.articleid,
+			a.title,
+			a.publishtime,
+			a.copywriter_id,
+			a.auditor_id,
+			a.inst_id,
+			a.processinstance_id,
+			a.articlestate,
+			receiver.userid AS receiverid,
+			receiver.usertruename AS receivername,
+			tb_auditmessage.auditdate,
+			tb_auditmessage.auditresult,
+			tb_auditmessage.auditmessage,
+			tb_institution.instid,
+			tb_institution.instname,
+			copywriter.usertruename AS copywritername,
+			copywriter.userid AS copywriterid,
+			auditor.userid AS auditorid,
+			auditor.usertruename AS auditorname,
+			tb_attachment.attachmentid,
+			tb_attachment.filename,
+			tb_attachment.attachtype,
+			tb_attachment.uploadtime,
+			tb_attachment.filesize,
+			tb_attachment.fileid,
+			receiver_inst.instname AS receiver_inst_name,
+			receiver_inst.instid AS receiver_inst_id,
+			(
+				SELECT DISTINCT
+					COUNT(*)
+				FROM
+					tb_log
+				LEFT OUTER JOIN tb_article ON tb_log.bussiness_id = tb_article.articleid
+				WHERE
+					tb_article.articleid = a.articleid
+				AND tb_log.optname = '查看公文'
+			) AS clickcount,
+			(
+				SELECT DISTINCT
+					COUNT(*)
+				FROM
+					tb_log
+				LEFT OUTER JOIN tb_article ON tb_log.bussiness_id = tb_article.articleid
+				WHERE
+					tb_article.articleid = a.articleid
+				AND tb_log.optname = '下载公文'
+			) AS downloadcount
+		FROM
+			tb_article AS a
+			LEFT OUTER JOIN tb_receive ON tb_receive.article_id = a.articleid
+			LEFT OUTER JOIN tb_user AS receiver ON tb_receive.receiver_id = receiver.userid
+			LEFT OUTER JOIN tb_auditmessage ON tb_auditmessage.article_id = a.articleid
+			LEFT OUTER JOIN tb_institution ON a.inst_id = tb_institution.instid
+			LEFT OUTER JOIN tb_user AS copywriter ON a.copywriter_id = copywriter.userid
+			LEFT OUTER JOIN tb_user AS auditor ON a.auditor_id = auditor.userid
+			LEFT OUTER JOIN tb_attachment ON tb_attachment.article_id = a.articleid
+			LEFT OUTER JOIN tb_institution AS receiver_inst ON receiver.inst_id = receiver_inst.instid
+
+	</sql>
+	
+	<!-- 按id检索一条记录（更详细） -->
+	<select id="selectOne" resultMap="BaseResultMap">
+		
+		<!-- 引入级联Sql -->
+		<include refid="CascadeSelectSql"></include>
+		
+		<!-- 加载和自己相关的列表，即要求接收人、撰稿人、审稿人 -->
+		WHERE 
+			(
+				tb_receive.receiver_id = #{userId,jdbcType=INTEGER}
+				OR copywriter.userid = #{userId,jdbcType=INTEGER}
+				OR auditor.userid = #{userId,jdbcType=INTEGER}
+			)
+
+		<!-- 查询条件id -->
+		AND a.articleid = #{articleid,jdbcType=INTEGER}
+	</select>
+	
+	<!-- 查询列表 -->
+	<select id="selectListAll" parameterType="cn.edu.nuc.article.entity.Article"
+		resultMap="BaseResultMap">
+		
+		<!-- 给字符串类型的参数加% -->
+		<if test="title != null">
+			<bind name="_title" value="'%'+title+'%'"/>
+		</if>
+		
+		<!-- 引入级联Sql -->
+		<include refid="CascadeSelectSql"></include>
+		
+		<!-- 动态加入查询条件 -->
+		WHERE 1=1
+			<if test="articleid != null">
+				AND articleid = #{articleid,jdbcType=INTEGER}
+			</if>
+			<if test="title != null">
+				AND title LIKE #{_title,jdbcType=VARCHAR}
+			</if>
+			<if test="publishtime != null">
+				AND publishtime = #{publishtime,jdbcType=TIMESTAMP}
+			</if>
+			<if test="copywriterId != null">
+				AND copywriter_id = #{copywriterId,jdbcType=INTEGER}
+			</if>
+			<if test="auditorId != null">
+				AND auditor_id = #{auditorId,jdbcType=INTEGER}
+			</if>
+			<if test="instId != null">
+				AND inst_id = #{instId,jdbcType=INTEGER}
+			</if>
+			<if test="processinstanceId != null">
+				AND processinstance_id = #{processinstanceId,jdbcType=VARCHAR}
+			</if>
+			<if test="articlestate != null">
+				AND articlestate = #{articlestate,jdbcType=INTEGER}
+			</if>
+			<if test="receiverid != null">
+				AND receiverid = #{receiverid,jdbcType=INTEGER}
+			</if>
+		
+		<!-- 加入排序条件 -->
+		ORDER BY tb_article.publishtime
+	</select>      
+	
+	<!-- 查询列表 -->
+	<select id="validateAccess" resultType="java.lang.Long">
+		
+		select
+			COUNT(*)
+		FROM
+			tb_article AS a
+			LEFT OUTER JOIN tb_receive ON tb_receive.article_id = a.articleid
+			LEFT OUTER JOIN tb_user AS receiver ON tb_receive.receiver_id = receiver.userid
+			LEFT OUTER JOIN tb_auditmessage ON tb_auditmessage.article_id = a.articleid
+			LEFT OUTER JOIN tb_institution ON a.inst_id = tb_institution.instid
+			LEFT OUTER JOIN tb_user AS copywriter ON a.copywriter_id = copywriter.userid
+			LEFT OUTER JOIN tb_user AS auditor ON a.auditor_id = auditor.userid
+			LEFT OUTER JOIN tb_attachment ON tb_attachment.article_id = a.articleid
+			LEFT OUTER JOIN tb_institution AS receiver_inst ON receiver.inst_id = receiver_inst.instid
+		<!-- 动态加入查询条件 -->
+		WHERE
+			<!-- 加载和自己相关的列表，即要求接收人、撰稿人、审稿人 -->
+			(
+				tb_receive.receiver_id = #{userId,jdbcType=INTEGER}
+				OR copywriter.userid = #{userId,jdbcType=INTEGER}
+				OR auditor.userid = #{userId,jdbcType=INTEGER}
+			)
+			
+			AND articleid = #{articleid,jdbcType=INTEGER}
+	</select>
+	
+	<!-- 查询列表 -->
+	<select id="selectMyReceiveList" parameterType="cn.edu.nuc.article.entity.Article"
+		resultMap="BaseResultMap">
+		
+		<!-- 给字符串类型的参数加% -->
+		<if test="title != null">
+			<bind name="_title" value="'%'+title+'%'"/>
+		</if>
+		
+		<!-- 引入级联Sql -->
+		<include refid="CascadeSelectSql"></include>
+		
+		<!-- 动态加入查询条件 -->
+		WHERE
+			<!-- 加载和自己相关的列表，即要求接收人、撰稿人、审稿人 -->
+			tb_receive.receiver_id = #{userId,jdbcType=INTEGER}
+			
+			<if test="articleid != null">
+				AND articleid = #{articleid,jdbcType=INTEGER}
+			</if>
+			<if test="title != null">
+				AND title LIKE #{_title,jdbcType=VARCHAR}
+			</if>
+			<if test="publishtime != null">
+				AND publishtime = #{publishtime,jdbcType=TIMESTAMP}
+			</if>
+			<if test="instId != null">
+				AND inst_id = #{instId,jdbcType=INTEGER}
+			</if>
+			<if test="processinstanceId != null">
+				AND processinstance_id = #{processinstanceId,jdbcType=VARCHAR}
+			</if>
+			<if test="articlestate != null">
+				AND articlestate = #{articlestate,jdbcType=INTEGER}
+			</if>
+		
+		<!-- 加入排序条件 -->
+		ORDER BY a.publishtime DESC
+	</select>
+	
+	<!-- 查询列表 -->
+	<select id="selectMyAuditList" parameterType="cn.edu.nuc.article.entity.Article"
+		resultMap="BaseResultMap">
+		
+		<!-- 给字符串类型的参数加% -->
+		<if test="title != null">
+			<bind name="_title" value="'%'+title+'%'"/>
+		</if>
+		
+		<!-- 引入级联Sql -->
+		<include refid="CascadeSelectSql"></include>
+		
+		<!-- 动态加入查询条件 -->
+		WHERE
+			<!-- 加载和自己相关的列表，即要求接收人、撰稿人、审稿人 -->
+			articlestate = 0
+			AND copywriter.userid = #{userId,jdbcType=INTEGER}
+
+			<if test="articleid != null">
+				AND articleid = #{articleid,jdbcType=INTEGER}
+			</if>
+			<if test="title != null">
+				AND title LIKE #{_title,jdbcType=VARCHAR}
+			</if>
+
+		<!-- 加入排序条件 -->
+		ORDER BY a.publishtime DESC
+	</select>
+	
+	<!-- 查询列表 -->
+	<select id="selectMyList" parameterType="cn.edu.nuc.article.entity.Article"
+		resultMap="BaseResultMap">
+		
+		<!-- 给字符串类型的参数加% -->
+		<if test="title != null">
+			<bind name="_title" value="'%'+title+'%'"/>
+		</if>
+		
+		<!-- 引入级联Sql -->
+		<include refid="CascadeSelectSql"></include>
+		
+		<!-- 动态加入查询条件 -->
+		WHERE
+			<!-- 加载和自己相关的列表，即要求接收人、撰稿人、审稿人 -->
+			(
+				(
+					tb_receive.receiver_id = #{userId,jdbcType=INTEGER}
+					AND articlestate = 3
+				)
+				OR copywriter.userid = #{userId,jdbcType=INTEGER}
+				OR auditor.userid = #{userId,jdbcType=INTEGER}
+			)
+			
+			AND articlestate IN(3,4)
+			<if test="articleid != null">
+				AND articleid = #{articleid,jdbcType=INTEGER}
+			</if>
+			<if test="title != null">
+				AND title LIKE #{_title,jdbcType=VARCHAR}
+			</if>
+
+		<!-- 加入排序条件 -->
+		ORDER BY a.publishtime DESC
+	</select>
+	
+	<!-- 查询列表 -->
+	<select id="selectByProcessInstances" resultMap="BaseResultMap">
+	
+		<!-- 给字符串类型的参数加% -->
+		<if test="title != null">
+			<bind name="_title" value="'%'+title+'%'"/>
+		</if>
+	
+		<!-- 引入级联Sql -->
+		<include refid="CascadeSelectSql"></include>
+		
+		<!-- 动态加入查询条件 -->
+		WHERE
+			1=1
+			<foreach collection="tasks" item="task" 
+					open="AND processinstance_id IN(" close=")" separator=",">
+				#{task.processInstanceId,jdbcType=VARCHAR}
+			</foreach>
+			
+			<if test="title != null">
+				AND title LIKE #{_title,jdbcType=VARCHAR}
+			</if>
+			
+			
+			<if test="articlestates != null">
+				<foreach collection="articlestates" item="articlestate" 
+						open="AND articlestate IN(" close=")" separator=",">
+					#{articlestate,jdbcType=INTEGER}
+				</foreach>
+			</if>
+	</select>
+	
+	<!-- 查询等待审核通过公文的数量 -->
+	<select id="selectMyWaitingCount" resultType="java.lang.Long">
+		
+		SELECT 
+			COUNT(*)	
+		FROM
+			tb_article a
+		LEFT OUTER JOIN tb_user AS copywriter ON a.copywriter_id = copywriter.userid
+		LEFT OUTER JOIN tb_user AS auditor ON a.auditor_id = auditor.userid
+		
+		<!-- 动态加入查询条件 -->
+		WHERE
+			<!-- 要求撰稿人必须是自己 -->
+			copywriter.userid = #{userId,jdbcType=INTEGER}
+			AND articlestate = 0
+	</select>
+	
+	<!-- 查询被驳回的公文数量 -->
+	<select id="selectMyFailCount" resultType="java.lang.Long">
+		
+		SELECT 
+			COUNT(*)	
+		FROM
+			tb_article a
+		LEFT OUTER JOIN tb_user AS copywriter ON a.copywriter_id = copywriter.userid
+		LEFT OUTER JOIN tb_user AS auditor ON a.auditor_id = auditor.userid
+		
+		<!-- 动态加入查询条件 -->
+		WHERE
+			<!-- 要求撰稿人必须是自己 -->
+			copywriter.userid = #{userId,jdbcType=INTEGER}
+			AND articlestate = 2
+	</select>
+	
+	<!-- 查询需要我审核的公文数量 -->
+	<select id="selectMyDealCount" resultType="java.lang.Long">
+		
+		SELECT 
+			COUNT(*)	
+		FROM
+			tb_article a
+		LEFT OUTER JOIN tb_user AS copywriter ON a.copywriter_id = copywriter.userid
+		LEFT OUTER JOIN tb_user AS auditor ON a.auditor_id = auditor.userid
+		
+		<!-- 动态加入查询条件 -->
+		WHERE
+			<!-- 要求自己是审稿人 -->
+			auditor.userid = #{userId,jdbcType=INTEGER}
+			AND articlestate = 0
+	</select>
+	
+	<!-- 查询待接收公文的数量 -->
+	<select id="selectMyCountReceiver" resultType="java.lang.Long">
+		
+		SELECT 
+			DISTINCT COUNT(*)	
+		FROM
+			tb_article a
+			LEFT OUTER JOIN tb_receive ON tb_receive.article_id = a.articleid
+			LEFT OUTER JOIN tb_user AS receiver ON tb_receive.receiver_id = receiver.userid
+		WHERE 
+			<!-- 要求接收者为自己 -->
+			tb_receive.receiver_id = #{userId,jdbcType=INTEGER} 
+			
+			<!-- 并且要保证用户没看过这篇文章 -->
+			AND(
+				SELECT
+					DISTINCT COUNT(*)
+				FROM
+					tb_log
+				LEFT OUTER JOIN tb_article
+					ON tb_log.bussiness_id = tb_article.articleid
+				WHERE
+					tb_article.articleid = a.articleid
+					AND tb_log.optname = '查看公文'
+					AND tb_article.articlestate = 3
+			) = 0
+			
+			AND a.articlestate = 3
+	</select>
+	
+	<!-- 检查公文标题是否重复 -->
+	<select id="validateTitle" resultType="java.lang.Long">
+		SELECT 
+			COUNT(*)
+		FROM
+			tb_article
+		WHERE 
+			title = #{title,jdbcType=VARCHAR}
+			<if test="articleid != null">
+				AND articleid != #{articleid,jdbcType=INTEGER}
+			</if>
+	</select>
+
+	<!-- 选择性插入 -->
+	<insert id="insertSelective" parameterType="cn.edu.nuc.article.entity.Article"
+			keyProperty="articleid" useGeneratedKeys="true">
+			
+		insert into tb_article
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="articleid != null">
+				articleid,
+			</if>
+			<if test="title != null">
+				title,
+			</if>
+			<if test="publishtime != null">
+				publishtime,
+			</if>
+			<if test="copywriterId != null">
+				copywriter_id,
+			</if>
+			<if test="auditorId != null">
+				auditor_id,
+			</if>
+			<if test="instId != null">
+				inst_id,
+			</if>
+			<if test="processinstanceId != null">
+				processinstance_id,
+			</if>
+			<if test="articlestate != null">
+				articlestate,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="articleid != null">
+				#{articleid,jdbcType=INTEGER},
+			</if>
+			<if test="title != null">
+				#{title,jdbcType=VARCHAR},
+			</if>
+			<if test="publishtime != null">
+				#{publishtime,jdbcType=TIMESTAMP},
+			</if>
+			<if test="copywriterId != null">
+				#{copywriterId,jdbcType=INTEGER},
+			</if>
+			<if test="auditorId != null">
+				#{auditorId,jdbcType=INTEGER},
+			</if>
+			<if test="instId != null">
+				#{instId,jdbcType=INTEGER},
+			</if>
+			<if test="processinstanceId != null">
+				#{processinstanceId,jdbcType=VARCHAR},
+			</if>
+			<if test="articlestate != null">
+				#{articlestate,jdbcType=INTEGER},
+			</if>
+		</trim>
+	</insert>
+	
+	<!-- 按主键选择性更新 -->
+	<update id="updateByPrimaryKeySelective" parameterType="cn.edu.nuc.article.entity.Article">
+		update tb_article
+		<set>
+			<if test="title != null">
+				title = #{title,jdbcType=VARCHAR},
+			</if>
+			<if test="publishtime != null">
+				publishtime = #{publishtime,jdbcType=TIMESTAMP},
+			</if>
+			<if test="copywriterId != null">
+				copywriter_id = #{copywriterId,jdbcType=INTEGER},
+			</if>
+			<if test="auditorId != null">
+				auditor_id = #{auditorId,jdbcType=INTEGER},
+			</if>
+			<if test="instId != null">
+				inst_id = #{instId,jdbcType=INTEGER},
+			</if>
+			<if test="processinstanceId != null">
+				processinstance_id = #{processinstanceId,jdbcType=VARCHAR},
+			</if>
+			<if test="articlestate != null">
+				articlestate = #{articlestate,jdbcType=INTEGER},
+			</if>
+		</set>
+		where 
+			articleid = #{articleid,jdbcType=INTEGER}
+	</update>
+	
+	<!-- 按主键删除 -->
+	<delete id="deleteById" parameterType="java.lang.Integer">
+		delete from tb_article where articleid = #{articleid,jdbcType=INTEGER}
+	</delete>
+</mapper>

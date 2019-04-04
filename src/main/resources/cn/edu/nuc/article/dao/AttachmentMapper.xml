@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.edu.nuc.article.dao.AttachmentMapper">
+
+	<!-- 级联结果集 -->
+	<resultMap id="CascadeResultMap" type="cn.edu.nuc.article.entity.Attachment">
+		<id column="attachmentid" jdbcType="INTEGER" property="attachmentid" />
+		<result column="filename" jdbcType="VARCHAR" property="filename" />
+		<result column="filesize" jdbcType="INTEGER" property="filesize" />
+		<result column="uploadtime" jdbcType="TIMESTAMP" property="uploadtime" />
+		<result column="fileid" jdbcType="VARCHAR" property="fileid" />
+		<result column="attachtype" jdbcType="INTEGER" property="attachtype" />
+		<result column="mimetype" jdbcType="VARCHAR" property="mimetype" />
+		<result column="article_id" jdbcType="INTEGER" property="articleId" />
+		
+		<!-- 级联公文信息 -->
+		<association property="article" javaType="cn.edu.nuc.article.entity.Article">
+			<id column="articleid" jdbcType="INTEGER" property="articleid" />
+			<result column="title" jdbcType="VARCHAR" property="title" />
+			
+			<!-- 在级联公文的时候一并级联出撰稿人和审稿人的信息 -->
+			<association property="copywriter" javaType="cn.edu.nuc.article.entity.User">
+				<id column="copywriterid" jdbcType="INTEGER" property="userid" />
+				<result column="copywritername" jdbcType="VARCHAR" property="usertruename" />
+			</association>
+			
+			<association property="auditor" javaType="cn.edu.nuc.article.entity.User">
+				<id column="auditorid" jdbcType="INTEGER" property="userid" />
+				<result column="auditorname" jdbcType="VARCHAR" property="usertruename" />
+			</association>
+		</association>
+	</resultMap>
+	
+	<!-- 级联SQL -->
+	<sql id="CascadeSql">
+		SELECT
+			tb_attachment.attachmentid,
+			tb_attachment.filename,
+			tb_attachment.filesize,
+			tb_attachment.uploadtime,
+			tb_attachment.fileid,
+			tb_attachment.attachtype,
+			tb_attachment.mimetype,
+			tb_attachment.article_id,
+			tb_article.title,
+			tb_article.articleid,
+			tb_article.copywriter_id,
+			copywriter.userid copywriterid,
+			copywriter.usertruename copywritername,
+			auditor.userid auditorid,
+			auditor.usertruename auditorname
+		FROM
+			tb_attachment
+		INNER JOIN 
+			tb_article ON tb_attachment.article_id = tb_article.articleid
+		INNER JOIN 
+			tb_user copywriter ON tb_article.copywriter_id = copywriter.userid 
+		INNER JOIN 
+			tb_user auditor ON tb_article.auditor_id = auditor.userid
+	</sql>
+	
+	<!-- 模糊查询附件信息 -->
+	<select id="selectByKeyword" parameterType="cn.edu.nuc.article.entity.Attachment"
+			resultMap="CascadeResultMap">
+		
+		<!-- 给字符串类型的参数加% -->
+		<if test="filename != null">
+			<bind name="_filename" value="'%'+filename+'%'"/>
+		</if>
+		
+		<!-- 引入级联查询Sql -->
+		<include refid="CascadeSql"></include>
+		
+		<!-- 动态添加级联查询条件 -->
+		WHERE 1=1
+		<if test="attachmentid != null">
+			AND attachmentid = #{attachmentid,jdbcType=INTEGER}
+		</if>
+		<if test="filename != null">
+			AND filename LIKE #{_filename,jdbcType=VARCHAR}
+		</if>
+		<if test="filesize != null">
+			AND filesize = #{filesize,jdbcType=INTEGER}
+		</if>
+		<if test="uploadtime != null">
+			AND uploadtime = #{uploadtime,jdbcType=TIMESTAMP}
+		</if>
+		<if test="fileid != null">
+			AND fileid = #{fileid,jdbcType=VARCHAR}
+		</if>
+		<if test="attachtype != null">
+			AND attachtype = #{attachtype,jdbcType=INTEGER}
+		</if>
+		<if test="mimetype != null">
+			AND mimetype = #{mimetype,jdbcType=VARCHAR}
+		</if>
+		<if test="articleId != null">
+			AND article_id = #{articleId,jdbcType=INTEGER}
+		</if>
+	</select>
+	
+	<!-- 按主键删除附件 -->
+	<delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+		delete from 
+			tb_attachment
+		where 
+			attachmentid = #{attachmentid,jdbcType=INTEGER}
+	</delete>
+	
+	<!-- 添加附件 -->
+	<insert id="insertSelective" parameterType="cn.edu.nuc.article.entity.Attachment">
+		insert into tb_attachment
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="attachmentid != null">
+				attachmentid,
+			</if>
+			<if test="filename != null">
+				filename,
+			</if>
+			<if test="filesize != null">
+				filesize,
+			</if>
+			<if test="uploadtime != null">
+				uploadtime,
+			</if>
+			<if test="fileid != null">
+				fileid,
+			</if>
+			<if test="attachtype != null">
+				attachtype,
+			</if>
+			<if test="mimetype != null">
+				mimetype,
+			</if>
+			<if test="articleId != null">
+				article_id,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="attachmentid != null">
+				#{attachmentid,jdbcType=INTEGER},
+			</if>
+			<if test="filename != null">
+				#{filename,jdbcType=VARCHAR},
+			</if>
+			<if test="filesize != null">
+				#{filesize,jdbcType=INTEGER},
+			</if>
+			<if test="uploadtime != null">
+				#{uploadtime,jdbcType=TIMESTAMP},
+			</if>
+			<if test="fileid != null">
+				#{fileid,jdbcType=VARCHAR},
+			</if>
+			<if test="attachtype != null">
+				#{attachtype,jdbcType=INTEGER},
+			</if>
+			<if test="mimetype != null">
+				#{mimetype,jdbcType=VARCHAR},
+			</if>
+			<if test="articleId != null">
+				#{articleId,jdbcType=INTEGER},
+			</if>
+		</trim>
+	</insert>
+</mapper>
